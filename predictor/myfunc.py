@@ -30,6 +30,31 @@ def calucrate_mean_std(waittimedf):
     return meanstddf
 
 
+def round(df, rounddict, attracID):
+
+    roundlist = rounddict[attracID]
+
+    ### roundlistの中から、wtに最も近い値を取り出す関数
+    def round_waittime(wt):
+        idx = np.abs(np.asarray(roundlist) - wt).argmin()
+        return roundlist[idx]
+    
+
+    ### round ###
+    # for col in df.columns:
+    #     wtlist = list(df[col])
+    #     df[col] = list(map(round_waittime, wtlist))
+
+    firstcol = df.columns[0]
+    wtlist = list(df[firstcol])
+    df[firstcol] = list(map(round_waittime, wtlist))
+
+    
+
+    return df
+
+
+
 def make_dataset_eachday(datasetdf, datasetdir_path):
 
     ### each date data ###

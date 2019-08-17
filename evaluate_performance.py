@@ -50,38 +50,56 @@ def main():
     ### predict ###
     ## mean
     predicted_meandf = predict_meanstd(meanstddf, 'mean', args.id, explanatories_eachday_df, lowerdate=args.lower_date, upperdate=args.upper_date, display_result=True)
-        # columns = ['mean']
+    predicted_meandf['mean_lower'] = predicted_meandf['mean'].values
+    predicted_meandf['mean_upper'] = predicted_meandf['mean'].values
+    # predicted_meandf['mean_lower'] = predicted_meandf['mean'] - 10
+    # predicted_meandf['mean_upper'] = predicted_meandf['mean'] + 10
+        # columns = ['mean', 'mean_lower', 'mean_upper']
 
     ## std
     predicted_stddf = predict_meanstd(meanstddf, 'std', args.id, explanatories_eachday_df, lowerdate=args.lower_date, upperdate=args.upper_date, display_result=False)
-        # columns = ['std']
+    predicted_stddf['std_lower'] = predicted_stddf['std'].values
+    predicted_stddf['std_upper'] = predicted_stddf['std'].values
+        # columns = ['std', 'std_lower', 'std_upper']
 
     ## normal
     predicted_normaldf = predict_eachtime_value(args.id, explanatories_eachtime_df, lowerdate=args.lower_date, upperdate=args.upper_date)
+    # predicted_normaldf['normal_lower'] = predicted_normaldf['normal'].values
+    # predicted_normaldf['normal_upper'] = predicted_normaldf['normal'].values
         # columns = ['normal', 'normal_lower', 'normal_upper']
 
 
     ### final prediction result ###
+
+    ## join
     # mean + std
     pred_meanstddf = predicted_meandf.join(predicted_stddf, how='inner')
 
+    # Multi Index (normal)
     df = predicted_normaldf.copy()
-    # Multi Index
     df.set_index([df.index.date, df.index], inplace=True)
     df.index.names = ['date', 'datetime']
 
     # join
     df = df.join(pred_meanstddf, how='inner')
 
-    #drop multiindex
+    # drop multiindex
     df.reset_index(level='date', inplace=True)
     df.drop(columns='date', inplace=True)
 
     # de normalize
     df['pred'] = df['normal'] * df['std'] + df['mean']
-    df['pred_lower'] = df['normal_lower'] * df['std'] + df['mean']
-    df['pred_upper'] = df['normal_upper'] * df['std'] + df['mean']
+    df['pred_lower'] = df['normal_lower'] * df['std_lower'] + df['mean_lower']
+    df['pred_upper'] = df['normal_upper'] * df['std_upper'] + df['mean_upper']
     preddf = df[['pred', 'pred_lower', 'pred_upper']].copy()
+
+
+    ### round ###
+    # read rounddict
+    with open(f'{args.dataset}/rounddict.pickle', 'rb') as f:
+        rounddict = pickle.load(f)
+
+    preddf = myfunc.round(preddf, rounddict, args.id)
 
 
     ### evaluate ###
@@ -147,10 +165,19 @@ def predict_meanstd(valuedf, mean_or_std, attracID, explanatories_df, lowerdate=
     predicted_residdf = predict_future.ranfore(resid_predict_model, explanatories_df)
     predicted_residdf.columns = ['resid']
 
+
+    ## predict interval ##
+    err_lower, err_upper = predict_future.ranfore_interval(resid_predict_model, explanatories_df.values, percentile=1)
+    predicted_residdf['resid_lower'] = err_lower
+    predicted_residdf['resid_upper'] = err_upper
+
+
     ## join and add
-    df = valuedf[['real']].join([ predicted_residdf[['resid']], detrended_df[['trend']] ])
+    df = valuedf[['real']].join([ predicted_residdf[['resid', 'resid_lower', 'resid_upper']], detrended_df[['trend']] ])
     df['pred'] = df['resid'] + df['trend']
-    resultdf = df[['real', 'pred']]
+    df['pred_lower'] = df['resid_lower'] + df['trend']
+    df['pred_upper'] = df['resid_upper'] + df['trend']
+    resultdf = df[['real', 'pred', 'pred_lower', 'pred_upper']]
 
     ## evaluate and plot
     if display_result:
@@ -172,7 +199,7 @@ def predict_meanstd(valuedf, mean_or_std, attracID, explanatories_df, lowerdate=
             )
         
         # plot
-        myfunc.save_result_plot(resultdf.copy(), outdir=f'{outdir}/ranfore')
+        myfunc.save_result_plot(resultdf[['real', 'pred']], outdir=f'{outdir}/ranfore')
 
 
     ### predict error ###
@@ -215,7 +242,9 @@ def predict_meanstd(valuedf, mean_or_std, attracID, explanatories_df, lowerdate=
     
     ## modify predict by pred_error
     df['pred'] = df['pred'] + df['pred_error']
-    resultdf = df[['real', 'pred']].copy()
+    df['pred_lower'] = df['pred_lower'] + df['pred_error']
+    df['pred_upper'] = df['pred_upper'] + df['pred_upper']
+    resultdf = df[['real', 'pred', 'pred_lower', 'pred_upper']]
 
 
     ## evaluate and plot
@@ -236,12 +265,12 @@ def predict_meanstd(valuedf, mean_or_std, attracID, explanatories_df, lowerdate=
             )
         
         # plot
-        myfunc.save_result_plot(resultdf.copy(), outdir=f'{outdir}/RNN')
+        myfunc.save_result_plot(resultdf[['real', 'pred']], outdir=f'{outdir}/RNN')
 
 
     ## return predict
-    df = resultdf[['pred']]
-    df.columns = [mean_or_std]
+    df = resultdf[['pred', 'pred_lower', 'pred_upper']]
+    df.columns = [mean_or_std, f'{mean_or_std}_lower', f'{mean_or_std}_upper']
     return df
 
 
