@@ -11,17 +11,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('id', help='attracID') #args.id
     parser.add_argument('dataset', help='dataset dir path') #args.dataset
-    parser.add_argument('-m', '--mean', action='store_true', help='mean predict model') #args.mean
-    parser.add_argument('-s', '--std', action='store_true', help='std predict model') #args.std
     parser.add_argument('-l', '--lower_date', help='lower date of dataset for learning') #args.lower_date
     parser.add_argument('-u', '--upper_date', help='upper date of dataset for learning') #args.upper_date
     args = parser.parse_args()
-
-    ### mean or std ###
-    if args.std:
-        mean_or_std = "std"
-    else:
-        mean_or_std = "mean"
     
 
     ### dataset ###
@@ -56,7 +48,7 @@ def main():
     model.fit(explanatory_eachday_df, explanatory_eachtime_df, waittimedf)
 
     saveobj = model.save()
-    pickle.dump(saveobj, open(f'wtpred-model.pickle', 'wb'))
+    pickle.dump(saveobj, open(f'models/{args.id}.pickle', 'wb'))
 
 
 if __name__ == '__main__':

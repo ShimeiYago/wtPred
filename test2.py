@@ -11,17 +11,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('id', help='attracID') #args.id
     parser.add_argument('dataset', help='dataset dir path') #args.dataset
-    parser.add_argument('-m', '--mean', action='store_true', help='mean predict model') #args.mean
-    parser.add_argument('-s', '--std', action='store_true', help='std predict model') #args.std
     parser.add_argument('-l', '--lower_date', help='lower date of dataset for learning') #args.lower_date
     parser.add_argument('-u', '--upper_date', help='upper date of dataset for learning') #args.upper_date
     args = parser.parse_args()
-
-    ### mean or std ###
-    if args.std:
-        mean_or_std = "std"
-    else:
-        mean_or_std = "mean"
     
 
     ### dataset ###
@@ -35,28 +27,24 @@ def main():
     filepath = f'{args.dataset}/waittime/{park}.csv'
     waittimedf = pd.read_csv(filepath, index_col='datetime', parse_dates=['datetime'])[[args.id]]
 
-    # cut waittime data
-    if args.lower_date:
-        waittimedf = waittimedf[args.lower_date:].copy()
-    
-    if args.upper_date:
-        waittimedf = waittimedf[:args.upper_date].copy()
 
     
     ### explanatory data ###
-    lowerdate_str = waittimedf.index[0].strftime('%Y-%m-%d')
-    upperdate_str = waittimedf.index[-1].strftime('%Y-%m-%d')
+    lowerdate_str = args.lower_date
+    upperdate_str = args.upper_date
 
     explanatory_eachday_df = make_explanatory.eachday(lowerdate_str, upperdate_str, args.dataset)
     explanatory_eachtime_df = make_explanatory.eachtime(lowerdate_str, upperdate_str, args.id[0], args.dataset)
     
 
-    ### learning ###
-    model = wtpred.model()
-    model.fit(explanatory_eachday_df, explanatory_eachtime_df, waittimedf)
+    ### load models ###
+    loaded_obj = pickle.load(open('wtpred-model.pickle', 'rb'))
 
-    saveobj = model.save()
-    pickle.dump(saveobj, open(f'wtpred-model.pickle', 'wb'))
+    model = wtpred.model()
+    model.load(loaded_obj)
+
+
+    model.predict(waittimedf, explanatory_eachday_df, explanatory_eachtime_df)
 
 
 if __name__ == '__main__':
