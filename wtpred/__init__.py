@@ -1,5 +1,7 @@
 from wtpred import preprocess
-from wtpred import base_predictors as bp
+from wtpred.base_predictors import fbprophet
+from wtpred.base_predictors import randomforest
+from wtpred.base_predictors import rnn
 
 from keras.models import model_from_json
 
@@ -24,7 +26,7 @@ class model:
         for mean_or_std in ['mean', 'std']:
 
             ### decompose target-value into trend and resid ###
-            detrended_df = bp.de_trend(meanstddf[[mean_or_std]])
+            detrended_df = fbprophet.de_trend(meanstddf[[mean_or_std]])
                 # columns -> mean, trend, resid
 
 
@@ -38,18 +40,17 @@ class model:
       
 
             ### learn resid ###
-            resid_predict_model = bp.randomforest_model(datasetdf)
+            resid_predict_model = randomforest.make_model(datasetdf)
 
 
             ### learn error ###
-            error_predict_model = bp.error_predict_model(datasetdf)
+            error_predict_model = rnn.make_model(datasetdf)
 
         
             ### save models ###
             self.basemodels[mean_or_std]['features'] = features_list
             self.basemodels[mean_or_std]['resid_model'] = resid_predict_model
             self.basemodels[mean_or_std]['error_model'] = error_predict_model
-
 
 
         ##### 02. learn mean and std #####
@@ -78,7 +79,7 @@ class model:
 
 
         ### learn normal value ###
-        normal_predict_model = bp.randomforest_model(datasetdf)
+        normal_predict_model = randomforest.make_model(datasetdf)
 
 
         ### save model ###
@@ -92,32 +93,76 @@ class model:
         lowerdate_str = explanatory_eachday_df.index[0].strftime('%Y-%m-%d')
         upperdate_str = explanatory_eachday_df.index[-1].strftime('%Y-%m-%d')
 
-        past_meandf = preprocess.calucrate_mean_std_eachday(past_waittime_df)[['mean']]
-        df = bp.predict_trend(past_meandf, lowerdate_str, upperdate_str)
+        ##### 01. predict mean and std #####
 
-        print(df)
+        predicted_mean_std_df = explanatory_eachday_df[[]]
+        for mean_or_std in ['mean', 'std']:
 
-    
-        # ### predict ###
-        # ## mean
-        # predicted_meandf = predict_meanstd(meanstddf, 'mean', args.id, explanatories_eachday_df, lowerdate=args.lower_date, upperdate=args.upper_date, display_result=True)
-        # predicted_meandf['mean_lower'] = predicted_meandf['mean'].values
-        # predicted_meandf['mean_upper'] = predicted_meandf['mean'].values
-        # # predicted_meandf['mean_lower'] = predicted_meandf['mean'] - 10
-        # # predicted_meandf['mean_upper'] = predicted_meandf['mean'] + 10
-        #     # columns = ['mean', 'mean_lower', 'mean_upper']
+            ### predict trend ###
+            past_meandf = preprocess.calucrate_mean_std_eachday(past_waittime_df)[[mean_or_std]]
+            predicted_trenddf = fbprophet.predict_trend(past_meandf, lowerdate_str, upperdate_str)
 
-        # ## std
-        # predicted_stddf = predict_meanstd(meanstddf, 'std', args.id, explanatories_eachday_df, lowerdate=args.lower_date, upperdate=args.upper_date, display_result=False)
-        # predicted_stddf['std_lower'] = predicted_stddf['std'].values
-        # predicted_stddf['std_upper'] = predicted_stddf['std'].values
-        #     # columns = ['std', 'std_lower', 'std_upper']
+        
+            ### predict resid ###
+            features_list = self.basemodels[mean_or_std]['features']
+            explanatorydf = preprocess.adapt_features(explanatory_eachday_df, features_list)
 
-        # ## normal
-        # predicted_normaldf = predict_eachtime_value(args.id, explanatories_eachtime_df, lowerdate=args.lower_date, upperdate=args.upper_date)
-        # # predicted_normaldf['normal_lower'] = predicted_normaldf['normal'].values
-        # # predicted_normaldf['normal_upper'] = predicted_normaldf['normal'].values
-        #     # columns = ['normal', 'normal_lower', 'normal_upper']
+            resid_predict_model = self.basemodels[mean_or_std]['resid_model']
+            predicted_residdf = randomforest.predict(resid_predict_model, explanatorydf)
+            predicted_residdf.columns = ['resid']
+
+
+            ### join ###
+            df = predicted_trenddf.join(predicted_residdf, how='inner')
+
+
+            ### trend + resid ###
+            df['predicted_value'] = df['trend'] + df['resid']
+
+            predicted_mean_std_df[mean_or_std] = df['predicted_value']
+
+
+
+        ##### 02. predict normal-value #####
+
+        # explanatory
+        features_list = self.basemodels['normal']['features']
+        explanatorydf = preprocess.adapt_features(explanatory_eachday_df, features_list)
+
+        # predict
+        normal_predict_model = self.basemodels['normal']['model']
+        predicted_normaldf = randomforest.predict(normal_predict_model, explanatorydf)
+        predicted_normaldf.columns = ['normal']
+
+        # predict interval
+        err_lower, err_upper = randomforest.predict_interval(normal_predict_model, explanatorydf.values, percentile=98)
+        predicted_normaldf['normal_lower'] = err_lower
+        predicted_normaldf['normal_upper'] = err_upper
+
+
+
+        ##### 03. join and de-normalize #####
+
+        # Multi Index (normal)
+        predicted_normaldf.set_index([predicted_normaldf.index.date, predicted_normaldf.index], inplace=True)
+        predicted_normaldf.index.names = ['date', 'datetime']
+
+        # join
+        preddf = predicted_normaldf.join(predicted_mean_std_df, how='inner')
+
+        # drop multiindex
+        preddf.reset_index(level='date', inplace=True)
+        preddf.drop(columns='date', inplace=True)
+
+        # de-normalize
+        preddf['value'] = preddf['normal'] * preddf['std'] + preddf['mean']
+        preddf['value_lower'] = preddf['normal_lower'] * preddf['std'] + preddf['mean']
+        preddf['value_upper'] = preddf['normal_upper'] * preddf['std'] + preddf['mean']
+        preddf = preddf[['mean', 'value', 'value_lower', 'value_upper']]
+
+
+
+        ###### 04. round #####
 
 
 

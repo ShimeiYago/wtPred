@@ -2,8 +2,8 @@ import pandas as pd
 import numpy as np
 import datetime
 
-
 from fbprophet import Prophet
+
 def de_trend(waittimedf):
 
     # rename columns

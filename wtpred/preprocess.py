@@ -41,3 +41,13 @@ def feature_selection(datasetdf):
 
     selected_features_list = [f for i,f in enumerate(X.columns) if mask[i]]
     return selected_features_list
+
+
+def adapt_features(df, features_list):
+    for feature in features_list:
+        if feature in df.columns:
+            continue
+        
+        df[feature] = 0
+        
+    return df[features_list]
