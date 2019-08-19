@@ -13,8 +13,9 @@ from keras.callbacks import EarlyStopping
 import tensorflow as tf
 import keras.backend as K
 
+N_lookbucks = 6
 
-def make_model(datasetdf, N_lookbucks=6):
+def make_model(datasetdf):
 
     ### make error_seq ###
     df = datasetdf.copy()
@@ -95,3 +96,31 @@ def make_model(datasetdf, N_lookbucks=6):
     )
 
     return model
+
+
+
+def predict_nextday_error(model, realdf, preddf, nextdate_str):
+    realdf.columns = ['real']
+    preddf.columns = ['pred']
+
+    date_index = pd.date_range(end=nextdate_str, periods=N_lookbucks+1, closed='left')
+
+    emptydf = pd.DataFrame([0]*N_lookbucks, index=date_index)
+    df = emptydf.join(realdf, how='inner')
+    df = df.join(preddf, how='inner')
+    df = df[['real', 'pred']]
+
+    df['error'] = df['real'] - df['pred']
+
+    if df['error'].isnull().any():
+        return 0
+
+
+    # reshape
+    X = np.array(df['error']).reshape(1, N_lookbucks, 1)
+
+    ## predict
+    predicted_error = model.predict(X).flatten()
+
+    return predicted_error
+

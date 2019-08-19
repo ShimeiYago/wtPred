@@ -104,6 +104,10 @@ def eachtime(lowerdate_str, upperdate_str, park, datasetdir_path):
     df['md'] = df.index.strftime('%m-%d')
 
 
+    ### fit index to openclose
+    df = fit_to_openclose(df, f'open{park}', f'close{park}')
+
+
     ### from-open and to-close ###
     def fromopen(row, park):
         x = row['open'+park]
@@ -158,4 +162,23 @@ def make_emptydf_eachtime(lowerdate_str, upperdate_str):
     datetime_index = pd.DatetimeIndex(datetime_index_list)
 
     df = pd.DataFrame(index=datetime_index)
+    return df
+
+
+
+# 各時刻を比較演算子で開園・閉園時間と比較して、おかしかったら削除するという戦略
+def fit_to_openclose(df, colname_open, colname_close):
+    for index, row in df[[colname_open, colname_close]].copy().iterrows():
+        nowtime = datetime.time(index.hour,index.minute)
+        opentime = datetime.datetime.strptime(row[colname_open], '%H:%M').time()
+        closetime = datetime.datetime.strptime(row[colname_close], '%H:%M').time()
+
+        # 開園時間で比較
+        if nowtime < opentime:
+            df.drop(index, inplace=True)
+        
+        # 閉園時間で比較
+        elif nowtime > closetime:
+            df.drop(index, inplace=True)
+    
     return df

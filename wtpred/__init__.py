@@ -1,4 +1,9 @@
+import pandas as pd
+import numpy as np
+import datetime
+
 from wtpred import preprocess
+from wtpred import wtround
 from wtpred.base_predictors import fbprophet
 from wtpred.base_predictors import randomforest
 from wtpred.base_predictors import rnn
@@ -88,24 +93,31 @@ class model:
 
 
 
-    def predict(self, past_waittime_df, explanatory_eachday_df, explanatory_eachtime_df):
+        ##### 03. count unique waittimes #####
+        self.basemodels['roundlist'] = wtround.make_roundlist(waittimedf[['waittime']])
 
-        lowerdate_str = explanatory_eachday_df.index[0].strftime('%Y-%m-%d')
-        upperdate_str = explanatory_eachday_df.index[-1].strftime('%Y-%m-%d')
+
+
+    def predict(self, past_waittime_df, explanatory_eachday_df, explanatory_eachtime_df, todate_str, upperdate_str):
+
+        lowerdate_str_with_lookbucks = ( datetime.datetime.strptime(todate_str, '%Y-%m-%d') - datetime.timedelta(days=rnn.N_lookbucks) ).strftime('%Y-%m-%d')
+
 
         ##### 01. predict mean and std #####
 
-        predicted_mean_std_df = explanatory_eachday_df[[]]
+        past_meanstd_df = preprocess.calucrate_mean_std_eachday(past_waittime_df)
+
+        predicted_meanstd_df = explanatory_eachday_df[[]][lowerdate_str_with_lookbucks:upperdate_str]
         for mean_or_std in ['mean', 'std']:
 
             ### predict trend ###
-            past_meandf = preprocess.calucrate_mean_std_eachday(past_waittime_df)[[mean_or_std]]
-            predicted_trenddf = fbprophet.predict_trend(past_meandf, lowerdate_str, upperdate_str)
-
+            predicted_trenddf = fbprophet.predict_trend(past_meanstd_df[[mean_or_std]], upperdate_str)
+            predicted_trenddf = predicted_trenddf[lowerdate_str_with_lookbucks:upperdate_str]
         
+
             ### predict resid ###
             features_list = self.basemodels[mean_or_std]['features']
-            explanatorydf = preprocess.adapt_features(explanatory_eachday_df, features_list)
+            explanatorydf = preprocess.adapt_features(explanatory_eachday_df[lowerdate_str_with_lookbucks:upperdate_str], features_list)
 
             resid_predict_model = self.basemodels[mean_or_std]['resid_model']
             predicted_residdf = randomforest.predict(resid_predict_model, explanatorydf)
@@ -119,7 +131,17 @@ class model:
             ### trend + resid ###
             df['predicted_value'] = df['trend'] + df['resid']
 
-            predicted_mean_std_df[mean_or_std] = df['predicted_value']
+
+            ### modify nextday error ###
+            error_predict_model = self.basemodels[mean_or_std]['error_model']
+            predicted_nextday_error = rnn.predict_nextday_error(error_predict_model, past_meanstd_df[[mean_or_std]], df[['predicted_value']], todate_str)
+            df.loc[todate_str, 'predicted_value'] = df.loc[todate_str, 'predicted_value'] + predicted_nextday_error
+
+
+            predicted_meanstd_df[mean_or_std] = df['predicted_value']
+
+
+        predicted_meanstd_df = predicted_meanstd_df[todate_str:upperdate_str]
 
 
 
@@ -127,7 +149,7 @@ class model:
 
         # explanatory
         features_list = self.basemodels['normal']['features']
-        explanatorydf = preprocess.adapt_features(explanatory_eachday_df, features_list)
+        explanatorydf = preprocess.adapt_features(explanatory_eachtime_df[todate_str:upperdate_str], features_list)
 
         # predict
         normal_predict_model = self.basemodels['normal']['model']
@@ -135,7 +157,7 @@ class model:
         predicted_normaldf.columns = ['normal']
 
         # predict interval
-        err_lower, err_upper = randomforest.predict_interval(normal_predict_model, explanatorydf.values, percentile=98)
+        err_lower, err_upper = randomforest.predict_interval(normal_predict_model, explanatorydf, percentile=98)
         predicted_normaldf['normal_lower'] = err_lower
         predicted_normaldf['normal_upper'] = err_upper
 
@@ -148,7 +170,7 @@ class model:
         predicted_normaldf.index.names = ['date', 'datetime']
 
         # join
-        preddf = predicted_normaldf.join(predicted_mean_std_df, how='inner')
+        preddf = predicted_normaldf.join(predicted_meanstd_df, how='inner')
 
         # drop multiindex
         preddf.reset_index(level='date', inplace=True)
@@ -158,11 +180,18 @@ class model:
         preddf['value'] = preddf['normal'] * preddf['std'] + preddf['mean']
         preddf['value_lower'] = preddf['normal_lower'] * preddf['std'] + preddf['mean']
         preddf['value_upper'] = preddf['normal_upper'] * preddf['std'] + preddf['mean']
-        preddf = preddf[['mean', 'value', 'value_lower', 'value_upper']]
+        preddf = preddf[['value', 'value_lower', 'value_upper']]
 
 
 
         ###### 04. round #####
+        roundlist = self.basemodels['roundlist']
+        preddf['value'] = wtround.round_waittime(list(preddf['value']), roundlist)
+        preddf['value_lower'] = wtround.round_waittime(list(preddf['value_lower']), roundlist)
+        preddf['value_upper'] = wtround.round_waittime(list(preddf['value_upper']), roundlist)
+
+
+        return predicted_meanstd_df[['mean']], preddf
 
 
 
@@ -186,6 +215,10 @@ class model:
         ### normal ###
         obj['normal']['features'] = self.basemodels['normal']['features']
         obj['normal']['model'] = self.basemodels['normal']['model']
+
+
+        ### roundlist ###
+        obj['roundlist'] = self.basemodels['roundlist']
        
 
         return obj
@@ -211,3 +244,7 @@ class model:
         ### normal ###
         self.basemodels['normal']['features'] = obj['normal']['features']
         self.basemodels['normal']['model'] = obj['normal']['model']
+
+
+        ### roundlist ###
+        self.basemodels['roundlist'] = obj['roundlist']

@@ -35,9 +35,9 @@ def de_trend(waittimedf):
 
 
 
-def predict_trend(past_waittime_df, lowerdate_str, upperdate_str):
+def predict_trend(past_waittime_df, upperdate_str):
     # periods of predict
-    periods_predit = ( datetime.datetime.strptime(upperdate_str, '%Y-%m-%d') - past_waittime_df.index[-1] ).days
+    periods_predict = ( datetime.datetime.strptime(upperdate_str, '%Y-%m-%d') - past_waittime_df.index[-1] ).days
 
     # rename columns
     data = past_waittime_df.reset_index()
@@ -46,7 +46,7 @@ def predict_trend(past_waittime_df, lowerdate_str, upperdate_str):
     # FBprophet
     model = Prophet(weekly_seasonality=False, daily_seasonality=False)
     model.fit(data)
-    future = model.make_future_dataframe(periods=periods_predit)
+    future = model.make_future_dataframe(periods=periods_predict)
     analyzed_df = model.predict(future)
 
     # trend + yealy -> trend
@@ -59,5 +59,6 @@ def predict_trend(past_waittime_df, lowerdate_str, upperdate_str):
     df = df[['trend_and_seasonal']]
     df = df.rename(columns={'trend_and_seasonal': 'trend'})
 
-    
-    return df[['trend']][lowerdate_str:upperdate_str]
+    # print(df)
+    # print(lowerdate_str)
+    return df[['trend']]
