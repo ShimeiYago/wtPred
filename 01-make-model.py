@@ -7,7 +7,13 @@ import argparse
 import os
 import pickle
 import wtpred
-import make_explanatory
+from wtpred import make_explanatory
+
+
+# output dir
+OUTDIR = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'outputs/01-saved-models')
+os.makedirs(OUTDIR, exist_ok=True)
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -23,10 +29,6 @@ def main():
 
     # dataset dir
     datasetdir = os.path.join(os.path.abspath(os.path.dirname(__file__)), args.datasetdir)
-
-    # output dir
-    outdir = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'models')
-    os.makedirs(outdir, exist_ok=True)
 
 
 
@@ -59,7 +61,7 @@ def main():
     saveobj = model.save()
 
     # # output
-    outpath = os.path.join(outdir, f'{args.id}.pickle')
+    outpath = os.path.join(OUTDIR, f'{args.id}.pickle')
     pickle.dump(saveobj, open(outpath, 'wb'))
     print(f'the model was saved to "{outpath}"')
 

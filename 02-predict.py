@@ -7,14 +7,15 @@ import argparse
 import os
 import pickle
 import wtpred
-from wtpred import preprocess
-import make_explanatory
+from wtpred import make_explanatory
 
-from sklearn.metrics import mean_squared_error
-from sklearn.metrics import r2_score
-from sklearn.metrics import mean_absolute_error
 
-# import matplotlib.pyplot as plt
+# saved model dir
+MODELDIR = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'outputs/01-saved-models')
+
+
+# output dir
+OUTDIR = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'outputs/02-predict')
 
 
 def main():
@@ -29,12 +30,18 @@ def main():
     datetime.datetime.strptime(args.lower_date, '%Y-%m-%d')
     datetime.datetime.strptime(args.upper_date, '%Y-%m-%d')
 
-    # dataset dir
-    datasetdir = os.path.join(os.path.abspath(os.path.dirname(__file__)), args.datasetdir)
-
     pre_1day_date = datetime.datetime.strftime( datetime.datetime.strptime(args.lower_date, '%Y-%m-%d') - datetime.timedelta(days=1),'%Y-%m-%d' )
     pre_7day_date = datetime.datetime.strftime( datetime.datetime.strptime(args.lower_date, '%Y-%m-%d') - datetime.timedelta(days=10),'%Y-%m-%d' )
 
+    # dataset dir
+    datasetdir = os.path.join(os.path.abspath(os.path.dirname(__file__)), args.datasetdir)
+
+    # output dir
+    outdir = os.path.join(OUTDIR, args.id)
+    os.makedirs(outdir, exist_ok=True)
+
+
+    modelpath = os.path.join(MODELDIR, f'{args.id}.pickle')
 
 
     ### 01. prepare past waittime data ###
@@ -60,7 +67,7 @@ def main():
     ### 03. predict ###
     # load model
     model = wtpred.model()
-    loaded_obj = pickle.load(open(f'models/{args.id}.pickle', 'rb'))
+    loaded_obj = pickle.load(open(modelpath, 'rb'))
     model.load(loaded_obj)
 
 
@@ -69,12 +76,8 @@ def main():
         # preddf_eachday  : predicted mean waittime each day (columns -> ['mean'])
         # preddf_eachtime : predicted waittime each datetime and possible lower-and-upper values (columns -> ['value', 'value_lower', 'value_upper'])
 
-
-    # outdir = f'simurated-result/{args.id}'
-    # os.makedirs(outdir, exist_ok=True)
-
-    # preddf_eachday.to_csv(f'{outdir}/mean.csv')
-    # preddf_eachtime.to_csv(f'{outdir}/pred.csv')
+    preddf_eachday.to_csv(os.path.join(outdir, 'predicted-mean-waittime-eachday.csv'))
+    preddf_eachtime.to_csv(os.path.join(outdir, 'predicted-waittime-eachtime.csv'))
 
 
 
