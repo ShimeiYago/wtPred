@@ -1,11 +1,10 @@
 import pandas as pd
-import numpy as np
 import datetime
 
 def eachday(lowerdate_str, upperdate_str, datasetdir_path):
 
     ### each date data ###
-    df = pd.read_csv(f'{datasetdir_path}/date_data/datedata.csv', index_col='date', parse_dates=['date'])
+    df = pd.read_csv(f'{datasetdir_path}/date-data/date-data.csv', index_col='date', parse_dates=['date'])
     df = df[['holiday', 'weekday', 'dayoff', 'dayoff_prev', 'dayoff_next']].copy()
 
     # onehot
@@ -15,7 +14,7 @@ def eachday(lowerdate_str, upperdate_str, datasetdir_path):
 
 
     ### weather data ###
-    df = pd.read_csv(f'{datasetdir_path}/weather/perday/data.csv', index_col='date', parse_dates=['date'])
+    df = pd.read_csv(f'{datasetdir_path}/weather/weather-eachday.csv', index_col='date', parse_dates=['date'])
     df['rainy'] = df['precipitation'].apply(lambda x: 0 if x == 0 else 1)
     df = df[['precipitation', 'rainy']].copy()
 
@@ -45,16 +44,16 @@ def eachtime(lowerdate_str, upperdate_str, park, datasetdir_path):
 
 
     ### opening hour data ###
-    ocdf = pd.read_csv(f'{datasetdir_path}/openclosetime/openclose.csv', index_col='date', parse_dates=['date'])
+    ocdf = pd.read_csv(f'{datasetdir_path}/openclose-time/openclose-time.csv', index_col='date', parse_dates=['date'])
 
 
     ### each date data ###
-    dtdf = pd.read_csv(f'{datasetdir_path}/date_data/datedata.csv', index_col='date', parse_dates=['date'])
+    dtdf = pd.read_csv(f'{datasetdir_path}/date-data/date-data.csv', index_col='date', parse_dates=['date'])
     dtdf = dtdf[['dayoff']].copy()
 
 
     ### weather data ###
-    wedf = pd.read_csv(f'{datasetdir_path}/weather/weather.csv', index_col='datetime', parse_dates=['datetime'])
+    wedf = pd.read_csv(f'{datasetdir_path}/weather/weather-eachtime.csv', index_col='datetime', parse_dates=['datetime'])
     wedf['rainy'] = wedf['precipitation'].apply(lambda x: 0 if x == 0 else 1)
     wedf = wedf[['precipitation', 'rainy']].copy()
 

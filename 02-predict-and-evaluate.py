@@ -17,9 +17,9 @@ import matplotlib.pyplot as plt
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('id', help='attracID') #args.id
-    parser.add_argument('todate', help='date for simuration') # args.todate
-    parser.add_argument('upperdate', help='upper date for prediction') # args.upperdate
+    parser.add_argument('--id', help='attracID', default='L00')
+    parser.add_argument('-l', '--lower_date', help='lower date for prediction', default='2015-1-1')
+    parser.add_argument('-u', '--upper_date', help='upper date for learning', default='2015-12-31')
     args = parser.parse_args()
 
     # check format
