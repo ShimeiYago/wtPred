@@ -9,9 +9,10 @@ There are many attractions in Disney Parks in Japan, but you have to wait in lin
 
 ## Performance
 I will show prediction performance about a attraction, named "Big Thunder Mountain".
+
 |  learning wait-time data  |  test wait-time data  |
 ----|---- 
-|  from 2012 to 2017        |  2018                 |
+|  from 2012 to 2017 |  2018 |
 
 
 ### prediction of congestion degree each day ###
