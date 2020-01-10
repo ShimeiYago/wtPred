@@ -26,7 +26,7 @@ PLOTDIR = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'outputs/03-p
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--id', help='attracID', default='L00')
-    parser.add_argument('-d', '--datasetdir', help='dataset dir path', default='test-datasets')
+    parser.add_argument('-d', '--datasetdir', help='dataset dir path', default='example-datasets')
     parser.add_argument('-e', action='store_true', help='only evaluation. do not plot.')
     args = parser.parse_args()
 
@@ -71,11 +71,6 @@ def main():
 
     print('--- prediction of waittime eachtime ---')
     evaluate(actdf_eachtime, preddf_eachtime)
-
-
-    ### 04. plot ###
-    outdir = os.path.join(PLOTDIR, args.id)
-    save_result_plot_final(actdf_eachtime, preddf_eachtime, outdir)
 
 
 

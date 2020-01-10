@@ -18,7 +18,7 @@ os.makedirs(OUTDIR, exist_ok=True)
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--id', help='attracID', default='L00')
-    parser.add_argument('-d', '--datasetdir', help='dataset dir path', default='test-datasets')
+    parser.add_argument('-d', '--datasetdir', help='dataset dir path', default='example-datasets')
     parser.add_argument('-l', '--lower_date', help='lower date of dataset for learning (Y-M-D)', default='2012-1-1')
     parser.add_argument('-u', '--upper_date', help='upper date of dataset for learning (Y-M-D)', default='2014-12-31')
     args = parser.parse_args()

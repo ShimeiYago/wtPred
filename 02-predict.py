@@ -21,7 +21,7 @@ OUTDIR = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'outputs/02-pr
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--id', help='attracID', default='L00')
-    parser.add_argument('-d', '--datasetdir', help='dataset dir path', default='test-datasets')
+    parser.add_argument('-d', '--datasetdir', help='dataset dir path', default='example-datasets')
     parser.add_argument('-l', '--lower_date', help='lower date for prediction (Y-M-D)', default='2015-1-1')
     parser.add_argument('-u', '--upper_date', help='upper date for prediction (Y-M-D)', default='2015-12-31')
     args = parser.parse_args()
@@ -78,6 +78,8 @@ def main():
 
     preddf_eachday.to_csv(os.path.join(outdir, 'predicted-mean-waittime-eachday.csv'))
     preddf_eachtime.to_csv(os.path.join(outdir, 'predicted-waittime-eachtime.csv'))
+
+    print(f'the predicted values was saved to "{outdir}"')
 
 
 
