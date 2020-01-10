@@ -27,7 +27,6 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--id', help='attracID', default='L00')
     parser.add_argument('-d', '--datasetdir', help='dataset dir path', default='example-datasets')
-    parser.add_argument('-e', action='store_true', help='only evaluation. do not plot.')
     args = parser.parse_args()
 
     # dataset dir

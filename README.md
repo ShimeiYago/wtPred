@@ -28,30 +28,30 @@ I'll show only some results.
 ## Requirement
 ### conda ###
 ```
-conda create -n wtpred --file 
+conda create -n wtpred --file requirements.txt
 ```
 
 ## Example
-I prepared `example-datasets/`.
+I prepared `example-datasets/`. I will use wait-time data of a attraction (Attraction ID: L00).
 ### 01. learning
 Make a model by the data from 2012 to 2014.
 ```
-./01-make-model.py
+./01-make-model.py --id L00 -d example-datasets/ -l 2012-1-1 -u 2014-12-31
 ```
 The model will be saved to `outputs/01-saved-models/`.
 
 ### 02. prediction
 Predict 2015 wait-time by the model.
 ```
-./02-predict.py
+./02-predict.py --id L00 -d example-datasets/ -l 2015-1-1 -u 2015-12-31
 ```
 The predicted congestion degree and wait-time will be saved to `outputs/02-predict/`.
 
 ### 03. evaluation
 Evaluate predicted wait-time by actual data.
 ```
-./03-evaluate.py
+./03-evaluate.py --id L00 -d example-datasets/
 ```
 
 ## Author
-[yago](https://github.com/ShimeiYago)
+[Shimei Yago](https://github.com/ShimeiYago)
