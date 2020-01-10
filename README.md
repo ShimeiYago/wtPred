@@ -26,9 +26,15 @@ I'll show only some results.
 <img src="https://raw.githubusercontent.com/ShimeiYago/wtPred/images/L10.png" alt="L10-eachtime" width="800px">
 
 ## Requirement
-### conda ###
+- python=3.6.9
+    - pandas=0.24.0
+    - scikit-learn=0.21.1
+    - fbprophet=0.5
+    - keras=2.2.4
+
+### install by conda ###
 ```
-conda create -n wtpred --file requirements.txt
+conda create -n wtpred -c conda-forge --file conda-requirements.txt
 ```
 
 ## Example
