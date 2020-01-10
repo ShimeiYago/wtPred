@@ -10,23 +10,19 @@ There are many attractions in Disney Parks in Japan, but you have to wait in lin
 ## Performance
 I will show prediction performance about a attraction, named "Big Thunder Mountain".
 |  learning wait-time data  |  test wait-time data  |
-| ----                      | ----                  |
+----|---- 
 |  from 2012 to 2017        |  2018                 |
 
-| TH1 | TH2 |
-----|---- 
-| TD1 | TD3 |
-| TD2 | TD4 |
 
 ### prediction of congestion degree each day ###
 Congestion degree is simple mean of wait-time every day.
 
-<img src="https://raw.githubusercontent.com/ShimeiYago/wtPred/images/daily-L10-orig.png" alt="L10-eachday" width="300px">
+<img src="https://raw.githubusercontent.com/ShimeiYago/wtPred/images/daily-L10-orig.png" alt="L10-eachday" width="800px">
 
 ### prediction of wait-time each time ###
 I'll show only some results.
 
-<img src="https://raw.githubusercontent.com/ShimeiYago/wtPred/images/L10.png" alt="L10-eachtime" width="300px">
+<img src="https://raw.githubusercontent.com/ShimeiYago/wtPred/images/L10.png" alt="L10-eachtime" width="800px">
 
 ## Requirement
 ### conda ###
